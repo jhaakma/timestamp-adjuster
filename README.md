@@ -4,6 +4,7 @@ A Python application for adjusting timestamps in transcript files. Supports **co
 
 ## Features
 
+- **Interactive CLI mode** - User-friendly file selection and adjustment input
 - **Configurable timestamp formats** via YAML configuration
 - Multiple input formats: `[HH:MM:SS]`, `HH:MM:SS`, `[H:MM:SS]`, etc.
 - **Customizable output format** with template strings
@@ -26,9 +27,36 @@ A Python application for adjusting timestamps in transcript files. Supports **co
 
 ## Usage
 
+### Interactive Mode (Recommended)
+
+The easiest way to use the Timestamp Adjuster is through the interactive mode:
+
+```bash
+# Quick start with provided script
+./start.sh
+
+# Or manually activate environment and run
+source venv/bin/activate
+python main.py
+```
+
+The interactive mode will:
+1. Show available files in the `inputs/` folder
+2. Let you select a file from a numbered menu
+3. Display a preview of the file content (optional)
+4. Ask for time adjustment in seconds
+5. Process the file and save to `outputs/` folder
+
+### Command Line Mode
+
+For automation or scripting, use the traditional command-line interface:
+
 ```bash
 # Basic usage
 python main.py inputs/transcript.txt 3
+
+# Interactive mode (explicit flag)
+python main.py -i
 
 # Custom output format
 python main.py inputs/transcript.txt -5 -f "({hours:02d}:{minutes:02d}:{seconds:02d})"
@@ -37,7 +65,7 @@ python main.py inputs/transcript.txt -5 -f "({hours:02d}:{minutes:02d}:{seconds:
 python main.py inputs/transcript.txt 15 -o custom_output.txt
 
 # Show help
-python main.py
+python main.py --help
 ```
 
 ## Configuration
@@ -64,6 +92,53 @@ export TIMESTAMP_OUTPUT_DIR="my_outputs"
 ```
 
 ## Examples
+
+### Interactive Mode Example
+
+Running the interactive mode (recommended for beginners):
+
+```bash
+./start.sh
+```
+
+**Sample interactive session:**
+```
+🕐 Timestamp Adjuster - Interactive Mode
+=============================================
+Welcome! This tool helps you adjust timestamps in transcript files.
+Let's get started by selecting a file and adjustment amount.
+
+📁 Available files in inputs folder:
+========================================
+  1. transcript.txt (24.7 KB)
+
+Select a file (1-1) or 'q' to quit: 1
+
+✅ Selected file: transcript.txt
+Would you like to see a preview of the file? (y/n): y
+
+📄 Preview of transcript.txt (first 10 lines):
+--------------------------------------------------
+   1: [00:03:32] Hello world
+   2: [00:03:35] This is a test
+   3: [00:04:00] End of transcript
+
+⏰ Time Adjustment
+====================
+Enter the number of seconds to adjust timestamps:
+  • Positive numbers (e.g., 30) to add time
+  • Negative numbers (e.g., -15) to subtract time
+  • 0 to make no adjustment
+
+Adjustment in seconds (or 'q' to quit): 20
+✅ Will ADD 20 seconds to all timestamps.
+Proceed? (y/n): y
+
+🔄 Processing transcript.txt...
+Successfully adjusted timestamps by 20 seconds.
+Output written to: outputs/transcript_plus20s.txt
+✅ File processed successfully!
+```
 
 ### Basic Usage
 
@@ -141,6 +216,7 @@ timestamp_adjuster/
 ├── config.yaml             # User config file
 ├── config.sample.yaml      # Sample configuration
 ├── main.py                 # Main application
+├── start.sh                # Quick start script (activates venv and runs app)
 ├── run_tests.sh            # Test runner script
 └── requirements.txt        # Dependencies (PyYAML)
 ```
