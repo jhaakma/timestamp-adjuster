@@ -1,0 +1,59 @@
+# Timestamp Adjuster - Sample Configuration
+# Copy this file to 'config.yaml' and customize as needed
+
+# Timestamp format settings
+timestamp:
+  # Input format patterns (regex patterns for matching timestamps)
+  input_formats:
+    - pattern: '\[(\d{2}):(\d{2}):(\d{2})\]'  # [HH:MM:SS] format
+      name: "bracketed_hms"
+      groups: ["hours", "minutes", "seconds"]
+      enabled: true
+    - pattern: '(\d{2}):(\d{2}):(\d{2})'       # HH:MM:SS format (no brackets)
+      name: "simple_hms"
+      groups: ["hours", "minutes", "seconds"]
+      enabled: true
+    - pattern: '\[(\d{1,2}):(\d{2}):(\d{2})\]' # [H:MM:SS] format (single hour digit)
+      name: "bracketed_hms_flex"
+      groups: ["hours", "minutes", "seconds"]
+      enabled: false  # Disabled by default to avoid conflicts with bracketed_hms
+  
+  # Output format template
+  # Available variables: {hours}, {minutes}, {seconds}
+  # Use :02d for zero-padded 2-digit formatting
+  output_format: "[{hours:02d}:{minutes:02d}:{seconds:02d}]"  # Default: [HH:MM:SS]
+  
+  # Default format to use when no specific format is detected
+  default_format: "bracketed_hms"
+
+# File handling settings
+files:
+  # Default input directory
+  input_dir: "inputs"
+  
+  # Default output directory  
+  output_dir: "outputs"
+  
+  # Default encoding for reading/writing files
+  encoding: "utf-8"
+  
+  # Backup original files before processing
+  create_backup: false
+
+# Output naming settings
+output_naming:
+  # Template for auto-generated filenames
+  # Available variables: {basename}, {extension}, {adjustment}, {sign}
+  template: "{basename}_{sign}{adjustment}s{extension}"
+  
+  # Signs for positive/negative adjustments
+  positive_sign: "plus"
+  negative_sign: "minus"
+
+# Processing settings
+processing:
+  # Handle negative timestamps (when adjustment would make timestamp < 00:00:00)
+  negative_handling: "zero"  # Options: "zero", "skip", "error"
+  
+  # Preserve original formatting whitespace
+  preserve_formatting: true

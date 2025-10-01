@@ -1,40 +1,60 @@
 #!/usr/bin/env python3
 """
 Timestamp Adjuster - Adjusts timestamps in transcript files.
-Supports timestamps in [HH:MM:SS] format.
+Supports configurable timestamp formats via YAML configuration.
 """
 
 import re
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional, List, Dict, Any
+
+from config import get_config
 
 
-def parse_timestamp(timestamp_str):
+def parse_timestamp(timestamp_str, formats: List[Dict[str, Any]]) -> Optional[int]:
     """
-    Parse a timestamp string in format [HH:MM:SS] and return total seconds.
+    Parse a timestamp string using configured formats and return total seconds.
     
     Args:
-        timestamp_str (str): Timestamp in format [HH:MM:SS]
+        timestamp_str (str): Timestamp string
+        formats (List[Dict]): List of format configurations
         
     Returns:
-        int: Total seconds
+        Optional[int]: Total seconds if parsed successfully, None otherwise
     """
-    # Remove brackets and split by colon
-    time_part = timestamp_str.strip('[]')
-    hours, minutes, seconds = map(int, time_part.split(':'))
-    return hours * 3600 + minutes * 60 + seconds
+    for fmt in formats:
+        pattern = fmt["pattern"]
+        groups = fmt["groups"]
+        
+        match = re.search(pattern, timestamp_str)
+        if match:
+            # Extract time components based on group names
+            time_parts = {}
+            for i, group_name in enumerate(groups, 1):
+                time_parts[group_name] = int(match.group(i))
+            
+            # Calculate total seconds
+            hours = time_parts.get("hours", 0)
+            minutes = time_parts.get("minutes", 0) 
+            seconds = time_parts.get("seconds", 0)
+            
+            return hours * 3600 + minutes * 60 + seconds
+    
+    return None
 
 
-def seconds_to_timestamp(total_seconds):
+def seconds_to_timestamp(total_seconds: int, output_format: str) -> str:
     """
-    Convert total seconds back to [HH:MM:SS] format.
+    Convert total seconds to timestamp using configured output format.
     
     Args:
         total_seconds (int): Total seconds
+        output_format (str): Format template string
         
     Returns:
-        str: Timestamp in format [HH:MM:SS]
+        str: Formatted timestamp
     """
     # Handle negative timestamps by setting them to 00:00:00
     if total_seconds < 0:
@@ -44,46 +64,60 @@ def seconds_to_timestamp(total_seconds):
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
     
-    return f"[{hours:02d}:{minutes:02d}:{seconds:02d}]"
+    return output_format.format(
+        hours=hours,
+        minutes=minutes, 
+        seconds=seconds
+    )
 
 
-def adjust_timestamps(content, adjustment_seconds):
+def adjust_timestamps(content: str, adjustment_seconds: int, config) -> str:
     """
     Adjust all timestamps in the content by the specified number of seconds.
     
     Args:
         content (str): The transcript content
         adjustment_seconds (int): Number of seconds to adjust (can be negative)
+        config: Configuration object
         
     Returns:
         str: Content with adjusted timestamps
     """
-    # Regular expression to find timestamps in format [HH:MM:SS]
-    timestamp_pattern = r'\[(\d{2}):(\d{2}):(\d{2})\]'
+    formats = config.get_timestamp_formats()
+    output_format = config.get_output_format()
+    
+    # Create a combined pattern from all input formats
+    all_patterns = [fmt["pattern"] for fmt in formats]
+    combined_pattern = '|'.join(f'({pattern})' for pattern in all_patterns)
     
     def replace_timestamp(match):
+        # Find which pattern matched
+        matched_text = match.group(0)
+        
         # Parse the matched timestamp
-        original_timestamp = match.group(0)
-        total_seconds = parse_timestamp(original_timestamp)
+        total_seconds = parse_timestamp(matched_text, formats)
+        if total_seconds is None:
+            return matched_text  # Return unchanged if parsing failed
         
         # Adjust the timestamp
         new_total_seconds = total_seconds + adjustment_seconds
         
         # Convert back to timestamp format
-        return seconds_to_timestamp(new_total_seconds)
+        return seconds_to_timestamp(new_total_seconds, output_format)
     
     # Replace all timestamps in the content
-    adjusted_content = re.sub(timestamp_pattern, replace_timestamp, content)
+    adjusted_content = re.sub(combined_pattern, replace_timestamp, content)
     return adjusted_content
 
 
-def generate_output_filename(input_file, adjustment_seconds):
+def generate_output_filename(input_file: str, adjustment_seconds: int, config) -> Path:
     """
     Generate an output filename based on the input file and adjustment.
     
     Args:
         input_file (str): Path to input file
         adjustment_seconds (int): Number of seconds adjusted
+        config: Configuration object
         
     Returns:
         Path: Generated output file path in outputs folder
@@ -91,34 +125,41 @@ def generate_output_filename(input_file, adjustment_seconds):
     input_path = Path(input_file)
     
     # Create outputs directory if it doesn't exist
-    outputs_dir = Path("outputs")
+    outputs_dir = Path(config.get_output_dir())
     outputs_dir.mkdir(exist_ok=True)
     
     # Get the base filename without extension
     base_name = input_path.stem
     extension = input_path.suffix
     
-    # Generate suffix based on adjustment
+    # Generate sign and template variables
     if adjustment_seconds >= 0:
-        suffix = f"_plus_{adjustment_seconds}s"
+        sign = config.get_positive_sign()
     else:
-        suffix = f"_minus_{abs(adjustment_seconds)}s"
+        sign = config.get_negative_sign()
     
-    # Construct the output filename
-    output_filename = f"{base_name}{suffix}{extension}"
+    # Format filename using template
+    template = config.get_output_template()
+    output_filename = template.format(
+        basename=base_name,
+        extension=extension,
+        adjustment=abs(adjustment_seconds),
+        sign=sign
+    )
+    
     output_path = outputs_dir / output_filename
-    
     return output_path
 
 
-def process_file(input_file, output_file, adjustment_seconds):
+def process_file(input_file: str, output_file: Optional[str], adjustment_seconds: int, config) -> bool:
     """
     Process a transcript file and adjust all timestamps.
     
     Args:
         input_file (str): Path to input transcript file
-        output_file (str): Path to output file (if None, auto-generates in outputs folder)
+        output_file (Optional[str]): Path to output file (if None, auto-generates in outputs folder)
         adjustment_seconds (int): Number of seconds to adjust
+        config: Configuration object
     """
     input_path = Path(input_file)
     
@@ -128,15 +169,16 @@ def process_file(input_file, output_file, adjustment_seconds):
     
     try:
         # Read the input file
-        with open(input_path, 'r', encoding='utf-8') as f:
+        encoding = config.get_encoding()
+        with open(input_path, 'r', encoding=encoding) as f:
             content = f.read()
         
         # Adjust timestamps
-        adjusted_content = adjust_timestamps(content, adjustment_seconds)
+        adjusted_content = adjust_timestamps(content, adjustment_seconds, config)
         
         # Determine output file
         if output_file is None:
-            output_path = generate_output_filename(input_file, adjustment_seconds)
+            output_path = generate_output_filename(input_file, adjustment_seconds, config)
         else:
             output_path = Path(output_file)
         
@@ -144,7 +186,7 @@ def process_file(input_file, output_file, adjustment_seconds):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Write the adjusted content
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, 'w', encoding=encoding) as f:
             f.write(adjusted_content)
         
         print(f"Successfully adjusted timestamps by {adjustment_seconds} seconds.")
@@ -174,23 +216,35 @@ Examples:
                        help='Number of seconds to adjust (positive or negative)')
     parser.add_argument('-o', '--output', dest='output_file',
                        help='Output file (if not specified, auto-generates in outputs/ folder)')
+    parser.add_argument('-c', '--config', dest='config_file',
+                       help='Configuration file path (default: searches for config.yaml)')
+    parser.add_argument('-f', '--format', dest='output_format',
+                       help='Override output timestamp format (e.g., "[{hours:02d}:{minutes:02d}:{seconds:02d}]")')
     
     # If no arguments provided, show help and example
     if len(sys.argv) == 1:
         print("Timestamp Adjuster")
         print("==================")
-        print("Adjusts timestamps in transcript files with format [HH:MM:SS]\n")
+        print("Adjusts timestamps in transcript files with configurable formats\n")
         parser.print_help()
         print("\nExample usage:")
         print("  python main.py inputs/transcript.txt 3     # Creates outputs/transcript_plus_3s.txt")
         print("  python main.py inputs/transcript.txt -5    # Creates outputs/transcript_minus_5s.txt")
         print("  python main.py inputs/transcript.txt 10 -o custom.txt  # Creates custom.txt")
+        print("  python main.py -c custom.yaml transcript.txt 5  # Uses custom config")
         return
     
     args = parser.parse_args()
     
+    # Load configuration
+    config = get_config(args.config_file)
+    
+    # Override output format if specified
+    if args.output_format:
+        config.config_data["timestamp"]["output_format"] = args.output_format
+    
     # Process the file
-    success = process_file(args.input_file, args.output_file, args.adjustment)
+    success = process_file(args.input_file, args.output_file, args.adjustment, config)
     
     if not success:
         sys.exit(1)

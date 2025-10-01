@@ -1,17 +1,15 @@
 # Timestamp Adjuster
 
-A Python application for adjusting timestamps in transcript files. Supports timestamps in `[HH:MM:SS]` format and can add or subtract a specified number of seconds from all timestamps in a file.
+A Python application for adjusting timestamps in transcript files. Supports **configurable timestamp formats** via YAML configuration and can add or subtract a specified number of seconds from all timestamps in a file.
 
 ## Features
 
-- Adjusts timestamps in `[HH:MM:SS]` format
-- Supports both positive (add time) and negative (subtract time) adjustments
-- **Auto-generates output filenames** in `outputs/` folder when no output file is specified
-- **Organized file management** with dedicated `inputs/` and `outputs/` folders
-- **Git-friendly structure** with proper .gitignore configuration
-- Can specify custom output file location if needed
+- **Configurable timestamp formats** via YAML configuration
+- Multiple input formats: `[HH:MM:SS]`, `HH:MM:SS`, `[H:MM:SS]`, etc.
+- **Customizable output format** with template strings
+- **Auto-generates output filenames** with descriptive names
+- **Priority-based configuration**: CLI args → Environment vars → Config file → Defaults
 - Handles edge cases (negative timestamps become `[00:00:00]`)
-- Command-line interface with helpful examples
 
 ## Setup
 
@@ -28,45 +26,46 @@ A Python application for adjusting timestamps in transcript files. Supports time
 
 ## Usage
 
-### Command Line Interface
-
 ```bash
-# Add 3 seconds - creates outputs/transcript_plus_3s.txt
+# Basic usage
 python main.py inputs/transcript.txt 3
 
-# Subtract 5 seconds - creates outputs/transcript_minus_5s.txt  
-python main.py inputs/transcript.txt -5
+# Custom output format
+python main.py inputs/transcript.txt -5 -f "({hours:02d}:{minutes:02d}:{seconds:02d})"
 
-# Adjust timestamps and save to a specific file
-python main.py inputs/transcript.txt 10 -o custom_output.txt
+# Custom output file
+python main.py inputs/transcript.txt 15 -o custom_output.txt
 
-# Show help and examples
+# Show help
 python main.py
 ```
 
-### File Organization
+## Configuration
 
-- **`inputs/`** - Place your original transcript files here
-- **`outputs/`** - Adjusted files are automatically saved here (when no custom output specified)
-- **Git Integration** - Input and output files are ignored by git, but folder structure is preserved
+### Priority System
+1. **CLI arguments** (highest priority) - `-f`, `-o`, `-c` options
+2. **Environment variables** - `TIMESTAMP_FORMAT`, etc.
+3. **Configuration file** - `config.yaml` (automatically detected)
+4. **Built-in defaults** (lowest priority)
 
-### Output File Naming
-
-When no output file is specified (`-o` option), the tool automatically:
-- Creates an `outputs/` folder if it doesn't exist
-- Generates descriptive filenames:
-  - `transcript.txt` + 3 seconds → `outputs/transcript_plus_3s.txt`
-  - `transcript.txt` - 5 seconds → `outputs/transcript_minus_5s.txt`
-  - `my_file.txt` + 10 seconds → `outputs/my_file_plus_10s.txt`
-
-### Using the Start Script
-
-The start script will run the application in interactive mode:
+### Setup Configuration
 ```bash
-./start.sh
+# Copy the sample configuration
+cp config.sample.yaml config.yaml
+
+# Edit config.yaml to customize settings
+```
+
+### Environment Variables
+```bash
+export TIMESTAMP_FORMAT="({hours:02d}:{minutes:02d}:{seconds:02d})"
+export TIMESTAMP_INPUT_DIR="my_inputs"
+export TIMESTAMP_OUTPUT_DIR="my_outputs"
 ```
 
 ## Examples
+
+### Basic Usage
 
 **Input file (inputs/transcript.txt):**
 ```
@@ -83,60 +82,57 @@ Output file: `outputs/transcript_plus_3s.txt`
 [00:04:03] End of transcript
 ```
 
-**After running `python main.py inputs/transcript.txt -10`:**
-Output file: `outputs/transcript_minus_10s.txt`
+### Custom Format Examples
+
+**Using parentheses format:**
+```bash
+python main.py inputs/transcript.txt 5 -f "({hours:02d}:{minutes:02d}:{seconds:02d})"
 ```
-[00:03:22] Hello world
-[00:03:25] This is a test
-[00:03:50] End of transcript
+Output:
+```
+(00:03:37) Hello world
+(00:03:40) This is a test
+(00:04:05) End of transcript
+```
+
+**No brackets format:**
+```bash
+python main.py inputs/transcript.txt 2 -f "{hours:02d}:{minutes:02d}:{seconds:02d}"
+```
+Output:
+```
+00:03:34 Hello world
+00:03:37 This is a test
+00:04:02 End of transcript
+```
+
+### Supported Input Formats
+
+The tool automatically detects and processes these timestamp formats:
+- `[HH:MM:SS]` - Standard bracketed format
+- `HH:MM:SS` - Simple colon-separated format  
+- `[H:MM:SS]` - Flexible hour format
+- Custom formats can be added via configuration
+
+Each format can be enabled/disabled in `config.yaml`:
+```yaml
+input_formats:
+  - pattern: '\[(\d{2}):(\d{2}):(\d{2})\]'
+    name: "bracketed_hms"
+    groups: ["hours", "minutes", "seconds"]
+    enabled: true    # Set to false to disable this format
 ```
 
 ## Project Structure
 
 ```
 timestamp_adjuster/
-├── .github/
-│   └── copilot-instructions.md
-├── inputs/                  # Place input transcript files here
-│   ├── .gitkeep            # Ensures folder is tracked by git
-│   └── transcript.txt      # Example input file
-├── outputs/                 # Auto-generated output files
-│   ├── .gitkeep            # Ensures folder is tracked by git
-│   ├── transcript_plus_3s.txt
-│   └── transcript_minus_5s.txt
-├── venv/                    # Virtual environment
-├── .gitignore              # Git ignore configuration
+├── inputs/                  # Input transcript files
+├── outputs/                 # Generated output files
+├── config.py               # Configuration management
+├── config.yaml             # User config file
+├── config.sample.yaml      # Sample configuration
 ├── main.py                 # Main application
-├── requirements.txt        # Dependencies
-├── start.sh                # Start script
-└── README.md              # Documentation
+└── requirements.txt        # Dependencies (PyYAML)
 ```
 
-### Git Configuration
-
-The `.gitignore` file is configured to:
-- ✅ **Track folder structure** (inputs/ and outputs/ folders are preserved)
-- ❌ **Ignore content files** (transcript files in inputs/ and outputs/ are not committed)
-- ❌ **Ignore Python artifacts** (__pycache__, .pyc files, etc.)
-- ❌ **Ignore virtual environment** (venv/ folder)
-- ❌ **Ignore IDE and OS files** (.vscode/, .DS_Store, etc.)
-
-## Development
-
-The project includes:
-- Virtual environment setup
-- Start script for easy execution
-- Basic project structure
-
-## Project Structure
-
-```
-timestamp_adjuster/
-├── .github/
-│   └── copilot-instructions.md
-├── venv/                    # Virtual environment (created after setup)
-├── main.py                  # Main application entry point
-├── requirements.txt         # Python dependencies
-├── start.sh                 # Start script
-└── README.md               # This file
-```

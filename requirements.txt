@@ -1,4 +1,7 @@
-# Add your Python dependencies here
+# Python dependencies for timestamp adjuster
+PyYAML>=6.0.1
+
+# Add your additional Python dependencies here
 # Example:
 # requests>=2.25.1
 # numpy>=1.21.0

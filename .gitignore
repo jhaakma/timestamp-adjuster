@@ -51,6 +51,12 @@ inputs/*
 outputs/*
 !outputs/.gitkeep
 
+# Configuration files (users can have their own)
+config.yaml
+config.yml
+timestamp-adjuster.yaml
+.timestamp-adjuster.yaml
+
 # Log files
 *.log
 
