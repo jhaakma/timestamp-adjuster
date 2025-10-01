@@ -70,19 +70,41 @@ python main.py --help
 
 ## Configuration
 
-### Priority System
-1. **CLI arguments** (highest priority) - `-f`, `-o`, `-c` options
+The application uses a layered configuration system for maximum flexibility:
+
+### Configuration Priority (highest to lowest)
+1. **CLI arguments** - `-f`, `-o`, `-c` options
 2. **Environment variables** - `TIMESTAMP_FORMAT`, etc.
-3. **Configuration file** - `config.yaml` (automatically detected)
-4. **Built-in defaults** (lowest priority)
+3. **User configuration** - `config.user.yaml` (git-ignored, optional)
+4. **Legacy configuration** - `config.yaml` (deprecated, for backward compatibility)
+5. **Base configuration** - `config.base.yaml` (git-tracked defaults)
+6. **Hardcoded defaults** (fallback)
 
-### Setup Configuration
+### User Configuration
+Create a `config.user.yaml` file to override any default settings:
+
 ```bash
-# Copy the sample configuration
-cp config.sample.yaml config.yaml
-
-# Edit config.yaml to customize settings
+# Copy the sample and customize
+cp config.user.yaml.sample config.user.yaml
+# Edit config.user.yaml with your preferences
 ```
+
+**Example user configuration:**
+```yaml
+# Override output format to use parentheses
+timestamp:
+  output_format: "({hours:02d}:{minutes:02d}:{seconds:02d})"
+
+# Use different directories
+files:
+  input_dir: "my_transcripts"
+  output_dir: "processed"
+```
+
+The user config file is git-ignored, so your personal settings won't conflict with others.
+
+### Base Configuration
+The `config.base.yaml` file contains all application defaults and is tracked in git. You can view it to see all available configuration options, but you should make changes in `config.user.yaml` instead.
 
 ### Environment Variables
 ```bash
@@ -213,8 +235,10 @@ timestamp_adjuster/
 │   ├── test_file_processing.py # File processing tests
 │   └── test_integration.py  # End-to-end integration tests
 ├── config.py               # Configuration management
-├── config.yaml             # User config file
-├── config.sample.yaml      # Sample configuration
+├── config.base.yaml        # Base configuration (git-tracked defaults)
+├── config.user.yaml        # User configuration (git-ignored overrides)
+├── config.user.yaml.sample # Sample user configuration
+├── config.yaml             # Legacy configuration (deprecated)
 ├── main.py                 # Main application
 ├── start.sh                # Quick start script (activates venv and runs app)
 ├── run_tests.sh            # Test runner script

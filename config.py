@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """
 Configuration management for Timestamp Adjuster.
-Handles loading configuration from YAML files, environment variables, and defaults.
+Handles loading configuration from base config, user config, environment variables, and defaults.
+
+Configuration Priority (highest to lowest):
+1. Command line arguments
+2. Environment variables
+3. User configuration file (config.user.yaml) - git ignored
+4. Legacy configuration files (config.yaml) - for backward compatibility
+5. Base configuration file (config.base.yaml) - git tracked defaults
+6. Hardcoded defaults
 """
 
 import os
@@ -13,47 +21,100 @@ from typing import Dict, Any, List, Optional
 class Config:
     """Configuration manager for timestamp adjuster."""
     
-    def __init__(self, config_file: Optional[str] = None):
+    def __init__(self, config_file: Optional[str] = None, ignore_user_config: bool = False, test_mode: bool = False):
         """
         Initialize configuration.
         
         Args:
             config_file: Optional path to config file. If None, uses default locations.
+            ignore_user_config: If True, skips loading user configuration (useful for tests)
+            test_mode: If True, only loads the specified config file and defaults (for isolated testing)
         """
         self.config_data = {}
+        self.ignore_user_config = ignore_user_config
+        self.test_mode = test_mode
         self.load_config(config_file)
     
     def load_config(self, config_file: Optional[str] = None):
         """
-        Load configuration from file, environment variables, and defaults.
-        Priority: Environment vars > Config file > Defaults
+        Load configuration from base config, user config, environment variables, and defaults.
+        Priority: Environment vars > User config > Legacy config > Base config > Hardcoded defaults
         """
-        # Start with defaults
+        # Start with hardcoded defaults
         self.config_data = self._get_defaults()
         
-        # Load from config file
-        config_path = self._find_config_file(config_file)
-        if config_path and config_path.exists():
+        # In test mode, only load the specified config file
+        if self.test_mode:
+            if config_file and Path(config_file).exists():
+                try:
+                    with open(config_file, 'r', encoding='utf-8') as f:
+                        test_config = yaml.safe_load(f) or {}
+                    self._merge_config(self.config_data, test_config)
+                    print(f"Loaded test configuration from: {config_file}")
+                except Exception as e:
+                    print(f"Warning: Could not load test config file {config_file}: {e}")
+            return
+        
+        # Load base configuration (application defaults)
+        base_config_path = self._find_base_config()
+        if base_config_path and base_config_path.exists():
             try:
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    file_config = yaml.safe_load(f) or {}
-                self._merge_config(self.config_data, file_config)
-                print(f"Loaded configuration from: {config_path}")
+                with open(base_config_path, 'r', encoding='utf-8') as f:
+                    base_config = yaml.safe_load(f) or {}
+                self._merge_config(self.config_data, base_config)
+                print(f"Loaded base configuration from: {base_config_path}")
             except Exception as e:
-                print(f"Warning: Could not load config file {config_path}: {e}")
+                print(f"Warning: Could not load base config file {base_config_path}: {e}")
+        
+        # Load legacy config for backward compatibility (lower priority than user config)
+        legacy_config_path = self._find_legacy_config()
+        if legacy_config_path and legacy_config_path.exists():
+            try:
+                with open(legacy_config_path, 'r', encoding='utf-8') as f:
+                    legacy_config = yaml.safe_load(f) or {}
+                self._merge_config(self.config_data, legacy_config)
+                print(f"Loaded legacy configuration from: {legacy_config_path}")
+                print("Warning: Legacy config files are deprecated. Consider migrating to config.user.yaml")
+            except Exception as e:
+                print(f"Warning: Could not load legacy config file {legacy_config_path}: {e}")
+        
+        # Load user configuration (overrides legacy config) - skip if ignore_user_config is True
+        if not self.ignore_user_config:
+            user_config_path = self._find_user_config(config_file)
+            if user_config_path and user_config_path.exists():
+                try:
+                    with open(user_config_path, 'r', encoding='utf-8') as f:
+                        user_config = yaml.safe_load(f) or {}
+                    self._merge_config(self.config_data, user_config)
+                    print(f"Loaded user configuration from: {user_config_path}")
+                except Exception as e:
+                    print(f"Warning: Could not load user config file {user_config_path}: {e}")
         
         # Override with environment variables
         self._load_env_vars()
     
-    def _find_config_file(self, config_file: Optional[str] = None) -> Optional[Path]:
-        """Find configuration file in order of preference."""
+    def _find_base_config(self) -> Optional[Path]:
+        """Find base configuration file."""
+        possible_locations = [
+            Path("config.base.yaml"),  # Current directory
+            Path("config.base.yml"),   # Alternative extension
+        ]
+        
+        for location in possible_locations:
+            if location.exists():
+                return location
+        
+        return None
+    
+    def _find_user_config(self, config_file: Optional[str] = None) -> Optional[Path]:
+        """Find user configuration file."""
         if config_file:
             return Path(config_file)
         
         # Check in order of preference
         possible_locations = [
-            Path("config.yaml"),  # Current directory
-            Path("timestamp-adjuster.yaml"),  # Current directory alternative
+            Path("config.user.yaml"),  # Current directory
+            Path("config.user.yml"),   # Alternative extension
             Path.home() / ".config" / "timestamp-adjuster" / "config.yaml",  # User config dir
             Path.home() / ".timestamp-adjuster.yaml",  # User home dir
         ]
@@ -64,6 +125,20 @@ class Config:
         
         return None
     
+    def _find_legacy_config(self) -> Optional[Path]:
+        """Find legacy configuration files for backward compatibility."""
+        possible_locations = [
+            Path("config.yaml"),  # Current directory
+            Path("config.yml"),   # Alternative extension
+            Path("timestamp-adjuster.yaml"),  # Current directory alternative
+        ]
+        
+        for location in possible_locations:
+            if location.exists():
+                return location
+        
+        return None
+
     def _get_defaults(self) -> Dict[str, Any]:
         """Get default configuration values."""
         return {

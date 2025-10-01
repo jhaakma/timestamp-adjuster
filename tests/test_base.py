@@ -7,6 +7,7 @@ import unittest
 import os
 import glob
 from pathlib import Path
+from config import Config
 
 
 class BaseTestCase(unittest.TestCase):
@@ -22,6 +23,10 @@ class BaseTestCase(unittest.TestCase):
         # Record files that existed before tests
         if cls.outputs_dir.exists():
             cls.initial_output_files = set(f.name for f in cls.outputs_dir.iterdir() if f.is_file())
+    
+    def get_test_config(self, config_file=None):
+        """Get a configuration object for testing that ignores user config."""
+        return Config(config_file=config_file, ignore_user_config=True)
     
     def setUp(self):
         """Set up individual test - record current state."""

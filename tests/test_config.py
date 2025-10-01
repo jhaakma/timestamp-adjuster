@@ -16,7 +16,7 @@ class TestConfiguration(BaseTestCase):
     def setUp(self):
         """Set up test fixtures."""
         super().setUp()  # Call base class setUp
-        self.config = Config()
+        self.config = self.get_test_config()
     
     def test_default_config(self):
         """Test default configuration values."""
@@ -50,7 +50,7 @@ timestamp:
         self.register_test_file(temp_config_path)
         
         # Load config from temporary file
-        config = Config(config_file=temp_config_path)
+        config = Config(config_file=temp_config_path, test_mode=True)
         formats = config.get_timestamp_formats()
         
         # Verify the custom format was loaded
@@ -83,7 +83,7 @@ timestamp:
         # Register for cleanup
         self.register_test_file(temp_config_path)
         
-        config = Config(config_file=temp_config_path)
+        config = Config(config_file=temp_config_path, test_mode=True)
         formats = config.get_timestamp_formats()
         
         # Should only return enabled formats
@@ -96,7 +96,7 @@ timestamp:
         os.environ['TIMESTAMP_FORMAT'] = '[ENV:{hours:02d}:{minutes:02d}:{seconds:02d}]'
         
         try:
-            config = Config()
+            config = Config(ignore_user_config=True)
             template = config.get('timestamp.output_format', '{hours:02d}:{minutes:02d}:{seconds:02d}')
             self.assertEqual(template, '[ENV:{hours:02d}:{minutes:02d}:{seconds:02d}]')
         finally:

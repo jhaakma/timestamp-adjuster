@@ -1,5 +1,6 @@
-# Timestamp Adjuster - Sample Configuration
-# Copy this file to 'config.yaml' and customize as needed
+# Timestamp Adjuster - Base Configuration
+# This file contains the application defaults and is tracked in git.
+# To customize settings, create a config.user.yaml file with your overrides.
 
 # Timestamp format settings
 timestamp:

@@ -43,12 +43,16 @@ End of transcript."""
         self.register_test_file(output_file.name)
         
         # Run main.py with test arguments
+        # Set environment variable to override user config for predictable test results
+        env = os.environ.copy()
+        env['TIMESTAMP_FORMAT'] = '[{hours:02d}:{minutes:02d}:{seconds:02d}]'
+        
         result = subprocess.run([
             sys.executable, 'main.py',
             self.input_file.name,
             '30',
             '--output', output_file.name
-        ], capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)) + '/..')
+        ], capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)) + '/..', env=env)
         
         # Check that the command succeeded
         self.assertEqual(result.returncode, 0, f"Application failed with error: {result.stderr}")
@@ -74,11 +78,15 @@ End of transcript."""
         
         try:
             # Run main.py without output file (should auto-generate)
+            # Set environment variable to override user config for predictable test results
+            env = os.environ.copy()
+            env['TIMESTAMP_FORMAT'] = '[{hours:02d}:{minutes:02d}:{seconds:02d}]'
+            
             result = subprocess.run([
                 sys.executable, 'main.py',
                 self.input_file.name,
                 '60'
-            ], capture_output=True, text=True, cwd=project_root)
+            ], capture_output=True, text=True, cwd=project_root, env=env)
             
             # Check that the command succeeded
             self.assertEqual(result.returncode, 0, f"Application failed with error: {result.stderr}")

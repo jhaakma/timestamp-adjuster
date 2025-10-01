@@ -51,7 +51,11 @@ inputs/*
 outputs/*
 !outputs/.gitkeep
 
-# Configuration files (users can have their own)
+# User configuration files (personal overrides)
+config.user.yaml
+config.user.yml
+
+# Legacy configuration files (deprecated)
 config.yaml
 config.yml
 timestamp-adjuster.yaml

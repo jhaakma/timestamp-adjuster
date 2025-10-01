@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """
-Unit tests for timestamp adjustment functionality.
+Tests for timestamp adjustment functionality.
 """
 
+import sys
+import os
 import unittest
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from tests.test_base import BaseTestCase
 from main import adjust_timestamps
-from config import Config
 
 
-class TestTimestampAdjustment(unittest.TestCase):
+class TestTimestampAdjustment(BaseTestCase):
     """Test timestamp adjustment functionality."""
     
     def setUp(self):
         """Set up test fixtures."""
-        self.config = Config()
+        super().setUp()  # Call base class setUp
+        self.config = self.get_test_config()
     
     def test_adjust_timestamps_positive(self):
         """Test adjusting timestamps with positive seconds."""

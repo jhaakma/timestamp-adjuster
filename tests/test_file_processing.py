@@ -7,7 +7,6 @@ import unittest
 import tempfile
 import os
 from main import process_file, generate_output_filename
-from config import Config
 from test_base import BaseTestCase
 
 
@@ -16,8 +15,8 @@ class TestFileProcessing(BaseTestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        super().setUp()  # Call base class setUp
-        self.config = Config()
+        super().setUp()
+        self.config = self.get_test_config()
     
     def test_generate_output_filename_positive(self):
         """Test output filename generation with positive adjustment."""

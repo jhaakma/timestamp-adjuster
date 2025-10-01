@@ -1,0 +1,30 @@
+# Timestamp Adjuster - User Configuration (Sample)
+# Copy this file to 'config.user.yaml' and uncomment/modify settings you want to override.
+# This file should NOT be committed to git (it's in .gitignore).
+
+# Example: Use parentheses instead of brackets for output
+# timestamp:
+#   output_format: "({hours:02d}:{minutes:02d}:{seconds:02d})"
+
+# Example: Use different input/output directories
+# files:
+#   input_dir: "my_transcripts"
+#   output_dir: "processed"
+
+# Example: Enable additional input formats
+# timestamp:
+#   input_formats:
+#     - pattern: '(\d{2}):(\d{2}):(\d{2})'
+#       name: "simple_hms"
+#       groups: ["hours", "minutes", "seconds"]
+#       enabled: true
+
+# Example: Different output naming convention
+# output_naming:
+#   template: "{basename}_adjusted_{adjustment}s{extension}"
+#   positive_sign: "add"
+#   negative_sign: "sub"
+
+# Example: Create backups of original files
+# files:
+#   create_backup: true
