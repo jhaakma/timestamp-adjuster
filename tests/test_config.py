@@ -7,13 +7,15 @@ import unittest
 import tempfile
 import os
 from config import Config
+from test_base import BaseTestCase
 
 
-class TestConfiguration(unittest.TestCase):
+class TestConfiguration(BaseTestCase):
     """Test configuration management functionality."""
     
     def setUp(self):
         """Set up test fixtures."""
+        super().setUp()  # Call base class setUp
         self.config = Config()
     
     def test_default_config(self):
@@ -44,21 +46,20 @@ timestamp:
             f.write(config_content)
             temp_config_path = f.name
         
-        try:
-            # Load config from temporary file
-            config = Config(config_file=temp_config_path)
-            formats = config.get_timestamp_formats()
-            
-            # Verify the custom format was loaded
-            self.assertEqual(len(formats), 1)
-            self.assertEqual(formats[0]['name'], 'test_format')
-            self.assertTrue(formats[0]['enabled'])
-            
-            # Verify output format
-            self.assertEqual(config.get('timestamp.output_format'), '[{hours:02d}:{minutes:02d}:{seconds:02d}]')
-        finally:
-            # Clean up
-            os.unlink(temp_config_path)
+        # Register for cleanup
+        self.register_test_file(temp_config_path)
+        
+        # Load config from temporary file
+        config = Config(config_file=temp_config_path)
+        formats = config.get_timestamp_formats()
+        
+        # Verify the custom format was loaded
+        self.assertEqual(len(formats), 1)
+        self.assertEqual(formats[0]['name'], 'test_format')
+        self.assertTrue(formats[0]['enabled'])
+        
+        # Verify output format
+        self.assertEqual(config.get('timestamp.output_format'), '[{hours:02d}:{minutes:02d}:{seconds:02d}]')
     
     def test_enabled_flag_filtering(self):
         """Test that disabled formats are filtered out."""
@@ -79,15 +80,15 @@ timestamp:
             f.write(config_content)
             temp_config_path = f.name
         
-        try:
-            config = Config(config_file=temp_config_path)
-            formats = config.get_timestamp_formats()
-            
-            # Should only return enabled formats
-            self.assertEqual(len(formats), 1)
-            self.assertEqual(formats[0]['name'], 'enabled_format')
-        finally:
-            os.unlink(temp_config_path)
+        # Register for cleanup
+        self.register_test_file(temp_config_path)
+        
+        config = Config(config_file=temp_config_path)
+        formats = config.get_timestamp_formats()
+        
+        # Should only return enabled formats
+        self.assertEqual(len(formats), 1)
+        self.assertEqual(formats[0]['name'], 'enabled_format')
     
     def test_environment_variable_override(self):
         """Test that environment variables override config values."""

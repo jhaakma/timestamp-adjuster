@@ -8,13 +8,15 @@ import tempfile
 import os
 from main import process_file, generate_output_filename
 from config import Config
+from test_base import BaseTestCase
 
 
-class TestFileProcessing(unittest.TestCase):
+class TestFileProcessing(BaseTestCase):
     """Test file processing functionality."""
     
     def setUp(self):
         """Set up test fixtures."""
+        super().setUp()  # Call base class setUp
         self.config = Config()
     
     def test_generate_output_filename_positive(self):
@@ -53,28 +55,27 @@ End of transcript."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as output_file:
             output_path = output_file.name
         
-        try:
-            # Process the file with +30 seconds adjustment
-            adjustment = 30
-            process_file(input_path, output_path, adjustment, self.config)
-            
-            # Read the output file
-            with open(output_path, 'r') as f:
-                output_content = f.read()
-            
-            # Verify timestamps were adjusted
-            self.assertIn("[00:02:00]", output_content)  # 00:01:30 + 30s
-            self.assertIn("[00:03:15]", output_content)  # 00:02:45 + 30s
-            self.assertIn("[00:03:45]", output_content)  # 00:03:15 + 30s
-            
-            # Verify non-timestamp content is preserved
-            self.assertIn("This is a test transcript.", output_content)
-            self.assertIn("Speaker 1: Hello there.", output_content)
-            self.assertIn("End of transcript.", output_content)
-        finally:
-            # Clean up
-            os.unlink(input_path)
-            os.unlink(output_path)
+        # Register files for cleanup
+        self.register_test_file(input_path)
+        self.register_test_file(output_path)
+        
+        # Process the file with +30 seconds adjustment
+        adjustment = 30
+        process_file(input_path, output_path, adjustment, self.config)
+        
+        # Read the output file
+        with open(output_path, 'r') as f:
+            output_content = f.read()
+        
+        # Verify timestamps were adjusted
+        self.assertIn("[00:02:00]", output_content)  # 00:01:30 + 30s
+        self.assertIn("[00:03:15]", output_content)  # 00:02:45 + 30s
+        self.assertIn("[00:03:45]", output_content)  # 00:03:15 + 30s
+        
+        # Verify non-timestamp content is preserved
+        self.assertIn("This is a test transcript.", output_content)
+        self.assertIn("Speaker 1: Hello there.", output_content)
+        self.assertIn("End of transcript.", output_content)
     
     def test_process_file_no_timestamps(self):
         """Test processing file without timestamps."""
@@ -90,20 +91,19 @@ Just regular text."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as output_file:
             output_path = output_file.name
         
-        try:
-            # Process the file
-            process_file(input_path, output_path, 30, self.config)
-            
-            # Read the output file
-            with open(output_path, 'r') as f:
-                output_content = f.read()
-            
-            # Verify content is unchanged
-            self.assertEqual(output_content.strip(), input_content.strip())
-        finally:
-            # Clean up
-            os.unlink(input_path)
-            os.unlink(output_path)
+        # Register files for cleanup
+        self.register_test_file(input_path)
+        self.register_test_file(output_path)
+        
+        # Process the file
+        process_file(input_path, output_path, 30, self.config)
+        
+        # Read the output file
+        with open(output_path, 'r') as f:
+            output_content = f.read()
+        
+        # Verify content is unchanged
+        self.assertEqual(output_content.strip(), input_content.strip())
 
 
 if __name__ == '__main__':
