@@ -129,10 +129,50 @@ input_formats:
 timestamp_adjuster/
 ├── inputs/                  # Input transcript files
 ├── outputs/                 # Generated output files
+├── tests/                   # Unit test modules
+│   ├── __init__.py
+│   ├── test_parsing.py      # Timestamp parsing tests
+│   ├── test_formatting.py   # Timestamp formatting tests
+│   ├── test_adjustment.py   # Timestamp adjustment tests
+│   ├── test_config.py       # Configuration management tests
+│   ├── test_file_processing.py # File processing tests
+│   └── test_integration.py  # End-to-end integration tests
 ├── config.py               # Configuration management
 ├── config.yaml             # User config file
 ├── config.sample.yaml      # Sample configuration
 ├── main.py                 # Main application
+├── run_tests.sh            # Test runner script
 └── requirements.txt        # Dependencies (PyYAML)
 ```
+
+## Testing
+
+Run the comprehensive unit test suite:
+
+```bash
+# Run all tests
+./run_tests.sh
+
+# Or run specific test modules
+source venv/bin/activate
+python -m unittest tests.test_parsing -v          # Test timestamp parsing
+python -m unittest tests.test_formatting -v       # Test timestamp formatting  
+python -m unittest tests.test_adjustment -v       # Test timestamp adjustment
+python -m unittest tests.test_config -v           # Test configuration management
+python -m unittest tests.test_file_processing -v  # Test file processing
+python -m unittest tests.test_integration -v      # Test end-to-end integration
+```
+
+## Test Coverage
+
+The test suite is organized into separate modules in the `/tests` directory:
+
+- 🧪 **test_parsing.py** - Timestamp parsing for all supported formats
+- 🧪 **test_formatting.py** - Timestamp formatting with various output templates  
+- 🧪 **test_adjustment.py** - Timestamp adjustment logic (positive/negative)
+- 🧪 **test_config.py** - Configuration management and enabled/disabled formats
+- 🧪 **test_file_processing.py** - File processing with auto-generated and custom output filenames
+- 🧪 **test_integration.py** - End-to-end integration testing
+
+**Total Coverage:** 26 comprehensive unit tests covering all functionality and edge cases.
 

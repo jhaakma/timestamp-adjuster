@@ -25,6 +25,10 @@ def parse_timestamp(timestamp_str, formats: List[Dict[str, Any]]) -> Optional[in
         Optional[int]: Total seconds if parsed successfully, None otherwise
     """
     for fmt in formats:
+        # Skip disabled formats
+        if not fmt.get("enabled", True):
+            continue
+            
         pattern = fmt["pattern"]
         groups = fmt["groups"]
         
